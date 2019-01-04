@@ -1,12 +1,11 @@
 package cc.snbie.iot.server;
 
+import cc.snbie.iot.server.util.SysUtil;
 import org.apache.log4j.Logger;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.Socket;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -19,6 +18,9 @@ public class ClientSession extends Thread{
     private BufferedReader br;
     private BufferedWriter bw;
     private LinkedBlockingQueue<SessionListener> listeners=new LinkedBlockingQueue<SessionListener>();
+    private long lastActivityTime=new Date().getTime();
+    private String id= SysUtil.createId();
+
     Map<String,Object> dataMap=new HashMap<String, Object>();
 
     public ClientSession(Socket socket,LinkedBlockingQueue<SessionListener> listeners){
@@ -32,6 +34,11 @@ public class ClientSession extends Thread{
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        new Thread(new Runnable() {
+            public void run() {
+                checkHeartbeat();
+            }
+        }).start();
         final ClientSession session=this;
         for(final SessionListener sessionListener : listeners){
             new Thread(new Runnable() {
@@ -42,11 +49,37 @@ public class ClientSession extends Thread{
         }
     }
 
+    private void checkHeartbeat() {
+        int deadTime=30*1000;
+        while (true){
+            try {
+                Thread.sleep(3*1000);
+            } catch (InterruptedException e) {
+
+            }
+            if(new Date().getTime()-lastActivityTime>deadTime){
+                break;
+            }
+        }
+        logger.debug("["+Global.LOG_TAG+"] Session dead,id="+id);
+        try {
+            br.close();
+            bw.close();
+            cs.close();
+        } catch (IOException e) {
+
+        }
+    }
+
     public void run() {
         try {
             String line = "";
             final ClientSession session=this;
             while ((line = br.readLine()) != null) {
+                lastActivityTime=new Date().getTime();
+//                if(line.toLowerCase().equals("hb")){
+//                    continue;
+//                }
                 logger.debug("[" + Global.LOG_TAG + "] Received message:" + line);
                 for(final SessionListener sessionListener : listeners){
                     final String finalLine = line;
@@ -59,7 +92,7 @@ public class ClientSession extends Thread{
 
             }
         } catch (Exception e) {
-            logger.error("", e);
+            logger.error("",e);
         }
     }
 

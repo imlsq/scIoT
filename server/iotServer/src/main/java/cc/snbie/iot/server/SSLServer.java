@@ -84,7 +84,7 @@ public class SSLServer {
             ctx.init(kmf.getKeyManagers(), trustManagers, new SecureRandom());
             SSLServerSocketFactory ssf = ctx.getServerSocketFactory();
             SSLServerSocket server = (SSLServerSocket) ssf.createServerSocket(port);
-            logger.debug("[" + Global.LOG_TAG + "] SSL Server started on port:" + port);
+            logger.info("[" + Global.LOG_TAG + "] SSL Server started on port:" + port);
             while (true) {
                 SSLSocket sock = (SSLSocket) server.accept();
                 new ClientSession(sock,listeners).start();
@@ -101,5 +101,9 @@ public class SSLServer {
 
     public void removeListener(SessionListener sessionListener){
         listeners.remove(sessionListener);
+    }
+
+    public static void main(String[] args){
+        new SSLServer().start(5350);
     }
 }
