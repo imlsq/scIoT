@@ -11,7 +11,7 @@ public class ScIotApplication {
 		new Thread(new Runnable() {
 			public void run() {
 				SSLServer sslServer=new SSLServer();
-				sslServer.start(5350,"D:\\wsoft\\tmp\\ca.pem");
+				sslServer.start(5350);
 			}
 		}).start();
 		SpringApplication.run(ScIotApplication.class, args);
