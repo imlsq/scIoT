@@ -87,8 +87,9 @@ public class SSLServer {
             logger.info("[" + Global.LOG_TAG + "] SSL Server started on port:" + port);
             while (true) {
                 SSLSocket sock = (SSLSocket) server.accept();
-                new ClientSession(sock,listeners).start();
-
+                ClientSession session=new ClientSession(sock,listeners);
+                logger.info("There's a new client,id="+session.getId());
+                new Thread(session).start();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

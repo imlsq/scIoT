@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class ClientSession extends Thread{
+public class ClientSession implements Runnable{
     final static Logger logger = Logger.getLogger(ClientSession.class);
     private Socket cs;
     private InputStreamReader isr;
@@ -49,6 +49,18 @@ public class ClientSession extends Thread{
         }
     }
 
+    public void send(String message){
+        if(bw==null){
+            return;
+        }
+        try {
+            bw.write(message);
+            bw.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void checkHeartbeat() {
         int deadTime=30*1000;
         while (true){
@@ -77,9 +89,10 @@ public class ClientSession extends Thread{
             final ClientSession session=this;
             while ((line = br.readLine()) != null) {
                 lastActivityTime=new Date().getTime();
-//                if(line.toLowerCase().equals("hb")){
-//                    continue;
-//                }
+                if(line.toLowerCase().equals("hb")){
+                    send("OK:HB\r\n");
+                    continue;
+                }
                 logger.debug("[" + Global.LOG_TAG + "] Received message:" + line);
                 for(final SessionListener sessionListener : listeners){
                     final String finalLine = line;
@@ -94,6 +107,15 @@ public class ClientSession extends Thread{
         } catch (Exception e) {
             logger.error("",e);
         }
+
+        final ClientSession session=this;
+        for(final SessionListener sessionListener : listeners){
+            new Thread(new Runnable() {
+                public void run() {
+                    sessionListener.onClosed(session);
+                }
+            }).start();
+        }
     }
 
     public Map<String, Object> getDataMap() {
@@ -102,5 +124,13 @@ public class ClientSession extends Thread{
 
     public void setDataMap(Map<String, Object> dataMap) {
         this.dataMap = dataMap;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }
