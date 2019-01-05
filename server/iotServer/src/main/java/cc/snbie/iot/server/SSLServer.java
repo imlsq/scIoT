@@ -1,5 +1,6 @@
 package cc.snbie.iot.server;
 
+import cc.snbie.iot.server.listener.SetMcuTimeListener;
 import org.apache.log4j.Logger;
 import sun.security.x509.*;
 
@@ -84,6 +85,7 @@ public class SSLServer {
             ctx.init(kmf.getKeyManagers(), trustManagers, new SecureRandom());
             SSLServerSocketFactory ssf = ctx.getServerSocketFactory();
             SSLServerSocket server = (SSLServerSocket) ssf.createServerSocket(port);
+            addListener(new SetMcuTimeListener());
             logger.info("[" + Global.LOG_TAG + "] SSL Server started on port:" + port);
             while (true) {
                 SSLSocket sock = (SSLSocket) server.accept();
@@ -105,6 +107,7 @@ public class SSLServer {
     }
 
     public static void main(String[] args){
-        new SSLServer().start(5350);
+        SSLServer sslServer=new SSLServer();
+        sslServer.start(5350);
     }
 }

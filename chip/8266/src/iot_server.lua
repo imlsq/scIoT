@@ -14,10 +14,7 @@ function connect_server()
         end)
         iot_socket:on("connection", function(sck, c)
             iot_connected=1;
-            -- sck:send("login:dtu|"..version.."|"..device_id.."|"..airkiss_id.."|"..reset_version.."\n")
-            -- tmr.create():alarm(2000, tmr.ALARM_SINGLE, function()
-            --     get_airkiss_id();
-            -- end)
+            send_message_to_server_over_socket("AT+LOGIN=8266|"..version.."|"..device_id.."|"..airkiss_id.."|"..reset_version.."\r\n")
         end)
         iot_socket:connect(iot_server_port,iot_server_domain)
     end
@@ -58,7 +55,7 @@ end
 
 function hearbeat()
     if(iot_connected==1 and iot_socket~=nil) then
-        iot_socket:send("hb\n");
+        send_message_to_server_over_socket("hb\n");
         not_received_hb_msg_count=not_received_hb_msg_count+1;
     end
 end
@@ -66,34 +63,29 @@ end
 function cmdHandler(c, pl)
     local tmp_s="";
     pl=string.gsub(pl, "\r", "")
-    log_print("Command Reveived:"..pl)
-    -- if (string.match(pl,"AT%+TIME=")~=nil) then
-    --     local tmp_s=string.gsub(pl, "AT%+TIME=", "")
-    --     rtctime.set(tmp_s/1000, 0)
-    --     sync_time=1
-    --     c:send("+TIME:OK\n");
-    -- elseif (string.match(pl,"airkiss_id:")~=nil) then
-    --     tmp_s=string.gsub(pl, "airkiss_id:", "")
-    --     tmp_s=string.gsub(tmp_s, "\n", "")
-    --     save_airkissid_to_file(tmp_s);
-    --     start_airkiss();
-    --     c:send("ok\n");
-    -- elseif (string.match(pl,"t_hex:")~=nil) then
-    --     tmp_s=string.gsub(pl, "t_hex:", "")
-    --     tmp_s=string.gsub(tmp_s, "\n", "")
-    --     local s_index=1;
-    --     while(s_index<string.len(tmp_s)-1)
-    --     do
-    --         --log_print(s_index..","..string.sub(tmp_s,s_index,s_index+1));
-    --         uart.write(0,tonumber(string.sub(tmp_s,s_index,s_index+1),16))
-    --         s_index=s_index+2;
-    --     end
-    --     c:send("ok\n");
-    -- end
+    log_print("[rev]"..pl)
+    if (string.match(pl,"AT%+TIME=")~=nil) then
+        local tmp_s=string.gsub(pl, "AT%+TIME=", "")
+        rtctime.set(tmp_s/1000, 0)
+        sync_time=1
+        send_message_to_server_over_socket("+TIME:OK\r\n");
+    elseif (string.match(pl,"AT%+U1HD=")~=nil) then
+        tmp_s=string.gsub(pl, "AT%+U1HD=", "")
+        tmp_s=string.gsub(tmp_s, "\n", "")
+        tmp_s=string.gsub(tmp_s, "\r", "")
+        local s_index=1;
+        while(s_index<string.len(tmp_s)-1)
+        do
+            --log_print(s_index..","..string.sub(tmp_s,s_index,s_index+1));
+            uart.write(0,tonumber(string.sub(tmp_s,s_index,s_index+1),16))
+            s_index=s_index+2;
+        end
+        send_message_to_server_over_socket("+U1HD:OK\r\n");
+    end
 end
 
 function send_message_to_server_over_socket(msg)
     if(iot_connected==1 and iot_socket~=nil) then
-        iot_socket:send(msg.."\n");
+        iot_socket:send(msg);
     end
 end
